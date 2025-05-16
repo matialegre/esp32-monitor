@@ -9,7 +9,7 @@
 
 [environment]
   NODE_ENV = "production"
-  PORT = "3000"
+  PORT = "8080"
   HOST = "0.0.0.0"
 DATABASE_URL = ""
 

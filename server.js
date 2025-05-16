@@ -78,8 +78,12 @@ wss.on('connection', (ws, req) => {
 });
 
 // Iniciar el servidor
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8080;
 const HOST = '0.0.0.0'; // Escuchar en todas las interfaces de red
+
+// Mostrar información de depuración
+console.log('PORT from process.env.PORT:', process.env.PORT);
+console.log('Using PORT:', PORT);
 
 server.listen(PORT, HOST, () => {
   console.log(`Servidor HTTP y WebSocket iniciado en http://${HOST}:${PORT}`);
