@@ -78,7 +78,7 @@ wss.on('connection', (ws, req) => {
 });
 
 // Iniciar el servidor
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 3000;
 const HOST = '0.0.0.0'; // Escuchar en todas las interfaces de red
 
 server.listen(PORT, HOST, () => {
