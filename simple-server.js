@@ -1,7 +1,131 @@
 const WebSocket = require('ws');
+const http = require('http');
+const express = require('express');
+
+// Crear una aplicación Express
+const app = express();
+
+// Configurar CORS
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Upgrade');
+  next();
+});
+
+// Crear servidor HTTP
+const server = http.createServer(app);
+
+// Ruta para manejar peticiones HTTP
+app.get('/', (req, res) => {
+  console.log('HTTP request:', req.url);
+  console.log('Headers:', req.headers);
+  res.send('WebSocket Server Running');
+});
+
+// Configurar WebSocket
 const wss = new WebSocket.Server({
-  port: process.env.PORT || 3000,
-  host: '0.0.0.0'
+  server,
+  path: '/ws',
+  verifyClient: (info, callback) => {
+    console.log('Verificando cliente:', info.origin);
+    callback(true); // Permitir todas las conexiones
+  }
+});
+
+wss.on('connection', function connection(ws, req) {
+  console.log('Cliente conectado desde:', req.connection.remoteAddress);
+  
+  ws.on('message', function incoming(message) {
+    console.log('Mensaje recibido:', message);
+    try {
+      const data = JSON.parse(message);
+      console.log('Procesando mensaje:', data);
+      
+      switch (data.action) {
+        case 'join_room':
+          handleJoinRoom(ws, data.room);
+          break;
+        case 'send_message':
+          handleSendMessage(ws, data.room, data.message, data.sender);
+          break;
+        case 'subscribe':
+          handleSubscribe(ws, data.topic);
+          break;
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      ws.send(JSON.stringify({ error: error.message }));
+    }
+  });
+
+  ws.on('close', () => {
+    console.log('Cliente desconectado');
+    // Eliminar cliente de todas las salas
+    for (const [room, clients] of clientsByRoom.entries()) {
+      const index = clients.indexOf(ws);
+      if (index > -1) {
+        clients.splice(index, 1);
+      }
+    }
+  });
+});
+
+// Iniciar el servidor
+const port = process.env.PORT || 3000;
+server.listen(port, () => {
+  console.log('Servidor escuchando en puerto', port);
+});
+
+// Crear servidor WebSocket
+const wss = new WebSocket.Server({
+  server,
+  path: '/ws'
+});
+
+// Manejar la conexión WebSocket
+wss.on('connection', function connection(ws, req) {
+  console.log('Cliente conectado');
+  
+  ws.on('message', function incoming(message) {
+    console.log('Mensaje recibido:', message);
+    try {
+      const data = JSON.parse(message);
+      console.log('Procesando mensaje:', data);
+      
+      switch (data.action) {
+        case 'join_room':
+          handleJoinRoom(ws, data.room);
+          break;
+        case 'send_message':
+          handleSendMessage(ws, data.room, data.message, data.sender);
+          break;
+        case 'subscribe':
+          handleSubscribe(ws, data.topic);
+          break;
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      ws.send(JSON.stringify({ error: error.message }));
+    }
+  });
+
+  ws.on('close', () => {
+    console.log('Cliente desconectado');
+    // Eliminar cliente de todas las salas
+    for (const [room, clients] of clientsByRoom.entries()) {
+      const index = clients.indexOf(ws);
+      if (index > -1) {
+        clients.splice(index, 1);
+      }
+    }
+  });
+});
+
+// Iniciar el servidor
+const port = process.env.PORT || 3000;
+server.listen(port, () => {
+  console.log('Servidor HTTP escuchando en puerto', port);
 });
 
 // Habilitar CORS para permitir conexiones desde cualquier origen
