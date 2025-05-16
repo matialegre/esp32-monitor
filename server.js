@@ -5,7 +5,7 @@ import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import session from 'express-session';
-import WebSocket from 'ws';
+import { WebSocketServer } from 'ws';
 import db from './models/index.js';
 import apiRoutes from './routes/api.js';
 import config from './config.js';
@@ -19,7 +19,7 @@ const app = express();
 const server = http.createServer(app);
 
 // Configuración de WebSocket para sensores
-const wss = new WebSocket.Server({ server, path: '/ws/sensors' });
+const wss = new WebSocketServer({ server, path: '/ws/sensors' });
 
 // Configuración de Socket.IO para el chat
 const io = new Server(server, {
