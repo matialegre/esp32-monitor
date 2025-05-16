@@ -1,7 +1,22 @@
 const WebSocket = require('ws');
 const wss = new WebSocket.Server({
   port: 3000,
-  host: '0.0.0.0'  // Escuchar en todas las interfaces de red
+  host: '0.0.0.0',
+  path: '/ws'
+});
+
+// Habilitar CORS para permitir conexiones desde cualquier origen
+wss.on('headers', (headers, req) => {
+  headers.push('Access-Control-Allow-Origin: *');
+  headers.push('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+  headers.push('Access-Control-Allow-Headers: Content-Type');
+});
+
+// Habilitar CORS para permitir conexiones desde cualquier origen
+wss.on('headers', (headers, req) => {
+  headers.push('Access-Control-Allow-Origin: *');
+  headers.push('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+  headers.push('Access-Control-Allow-Headers: Content-Type');
 });
 
 // Mantener un registro de clientes por sala
