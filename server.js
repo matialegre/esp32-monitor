@@ -1,103 +1,149 @@
-const WebSocket = require('ws');
-const http = require('http');
-const fs = require('fs');
-const path = require('path');
+import express from 'express';
+import http from 'http';
+import { Server } from 'socket.io';
+import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import session from 'express-session';
+import WebSocket from 'ws';
+import db from './models/index.js';
+import apiRoutes from './routes/api.js';
+import config from './config.js';
 
-// Crear servidor HTTP
-const server = http.createServer((req, res) => {
-  // Servir archivos estáticos
-  let filePath = path.join(__dirname, req.url === '/' ? '/public/index.html' : '/public' + req.url);
-  const extname = path.extname(filePath);
-  
-  // Mapear extensiones a tipos MIME
-  const mimeTypes = {
-    '.html': 'text/html',
-    '.js': 'text/javascript',
-    '.css': 'text/css',
-    '.json': 'application/json',
-    '.png': 'image/png',
-    '.jpg': 'image/jpg',
-    '.gif': 'image/gif',
-    '.svg': 'image/svg+xml',
-    '.wav': 'audio/wav',
-    '.mp4': 'video/mp4',
-    '.woff': 'application/font-woff',
-    '.ttf': 'application/font-ttf',
-    '.eot': 'application/vnd.ms-fontobject',
-    '.otf': 'application/font-otf',
-    '.wasm': 'application/wasm'
-  };
+// Obtener __dirname en ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-  // Configurar el tipo de contenido
-  const contentType = mimeTypes[extname] || 'application/octet-stream';
+// Inicializar la aplicación Express
+const app = express();
+const server = http.createServer(app);
 
-  // Leer el archivo
-  fs.readFile(filePath, (error, content) => {
-    if (error) {
-      if (error.code === 'ENOENT') {
-        // Archivo no encontrado
-        fs.readFile('./public/404.html', (error, content) => {
-          res.writeHead(404, { 'Content-Type': 'text/html' });
-          res.end(content, 'utf-8');
-        });
-      } else {
-        // Error del servidor
-        res.writeHead(500);
-        res.end('Error del servidor: ' + error.code);
-      }
-    } else {
-      // Archivo encontrado
-      res.writeHead(200, { 'Content-Type': contentType });
-      res.end(content, 'utf-8');
+// Configuración de WebSocket para sensores
+const wss = new WebSocket.Server({ server, path: '/ws/sensors' });
+
+// Configuración de Socket.IO para el chat
+const io = new Server(server, {
+  path: '/ws/chat',
+  cors: {
+    origin: '*',
+    methods: ['GET', 'POST']
+  }
+});
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Configuración de sesión
+app.use(session({
+  secret: config.session.secret,
+  resave: config.session.resave,
+  saveUninitialized: config.session.saveUninitialized,
+  cookie: config.session.cookie
+}));
+
+// Servir archivos estáticos
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Rutas de la API
+app.use('/api', apiRoutes);
+
+// Manejar rutas de la aplicación cliente (SPA)
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Almacenar conexiones WebSocket de sensores
+const sensorClients = new Set();
+
+// Manejar conexiones WebSocket de sensores
+wss.on('connection', (ws, req) => {
+  console.log('Nuevo cliente de sensor conectado');
+  sensorClients.add(ws);
+
+  ws.on('message', (message) => {
+    try {
+      const data = JSON.parse(message);
+      console.log('Datos del sensor recibidos:', data);
+      
+      // Reenviar datos a todos los clientes de la interfaz web
+      io.emit('sensor_data', data);
+    } catch (error) {
+      console.error('Error al procesar mensaje del sensor:', error);
     }
   });
-});
 
-// Configurar WebSocket
-const wss = new WebSocket.Server({ server, path: '/ws' });
-
-// Manejar conexiones WebSocket
-wss.on('connection', (ws, req) => {
-  console.log('Nueva conexión WebSocket');
-  
-  // Manejar mensajes del cliente
-  ws.on('message', (message) => {
-    console.log('Mensaje recibido:', message);
-    // Reenviar el mensaje a todos los clientes conectados
-    wss.clients.forEach((client) => {
-      if (client !== ws && client.readyState === WebSocket.OPEN) {
-        client.send(message);
-      }
-    });
-  });
-  
-  // Manejar cierre de conexión
   ws.on('close', () => {
-    console.log('Cliente desconectado');
+    console.log('Cliente de sensor desconectado');
+    sensorClients.delete(ws);
   });
 });
 
-// Iniciar el servidor
-const PORT = process.env.PORT || 8080;
-const HOST = '0.0.0.0'; // Escuchar en todas las interfaces de red
+// Manejar conexiones de Socket.IO para el chat
+io.on('connection', (socket) => {
+  console.log('Nuevo cliente de chat conectado:', socket.id);
 
-// Mostrar información de depuración
-console.log('PORT from process.env.PORT:', process.env.PORT);
-console.log('Using PORT:', PORT);
+  // Unirse a la sala global
+  socket.join('global');
 
-server.listen(PORT, HOST, () => {
-  console.log(`Servidor HTTP y WebSocket iniciado en http://${HOST}:${PORT}`);
-  console.log(`WebSocket disponible en ws://${HOST}:${PORT}/ws`);
+  // Manejar mensajes de chat
+  socket.on('chat_message', async (data) => {
+    try {
+      // Aquí podrías guardar el mensaje en la base de datos
+      console.log('Mensaje de chat recibido:', data);
+      
+      // Reenviar el mensaje a todos los clientes en la sala global
+      io.to('global').emit('chat_message', {
+        ...data,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Error al procesar mensaje de chat:', error);
+    }
+  });
+
+  // Manejar desconexión
+  socket.on('disconnect', () => {
+    console.log('Cliente de chat desconectado:', socket.id);
+  });
 });
 
-// Manejar errores del servidor
-server.on('error', (error) => {
-  console.error('Error del servidor:', error);
-  process.exit(1);
-});
+// Almacenar la instancia de io en la aplicación para usarla en los controladores
+app.set('io', io);
 
-// Manejar cierre inesperado
+// Inicializar la base de datos y luego iniciar el servidor
+const initServer = async () => {
+  try {
+    // Sincronizar modelos con la base de datos
+    await db.sequelize.sync();
+    console.log('Base de datos sincronizada');
+    
+    // Iniciar el servidor
+    const PORT = config.port || 3000;
+    const HOST = config.host || '0.0.0.0';
+    
+    server.listen(PORT, HOST, () => {
+      console.log(`Servidor iniciado en http://${HOST}:${PORT}`);
+      console.log(`WebSocket de sensores disponible en ws://${HOST}:${PORT}/ws/sensors`);
+      console.log(`WebSocket de chat disponible en ws://${HOST}:${PORT}/ws/chat`);
+    });
+  } catch (error) {
+    console.error('Error al iniciar el servidor:', error);
+    process.exit(1);
+  }
+};
+
+// Manejar errores no capturados
 process.on('uncaughtException', (error) => {
   console.error('Error no manejado:', error);
   process.exit(1);
 });
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Promesa rechazada no manejada:', reason);
+  process.exit(1);
+});
+
+// Iniciar el servidor
+initServer();
