@@ -2,7 +2,7 @@
 const publicVapidKey = '<TU_PUBLIC_VAPID_KEY>';
 
 // WebSocket configuration
-const wsUrl = 'ws://192.168.0.3:8080'; // Servidor local con WebSocket
+const wsUrl = 'ws://192.168.0.3:3000'; // Servidor local con WebSocket
 let socket = null;
 
 // Constants for sensor cards

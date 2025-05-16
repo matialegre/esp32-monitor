@@ -1,6 +1,6 @@
 const WebSocket = require('ws');
 const wss = new WebSocket.Server({
-  port: 8080,
+  port: 3000,
   host: '0.0.0.0'  // Escuchar en todas las interfaces de red
 });
 

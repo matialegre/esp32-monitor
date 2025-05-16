@@ -2,7 +2,7 @@
 name = "esp32-monitor"
 
 [env]
-PORT = "8080"
+PORT = "3000"
 NODE_ENV = "production"
 
 [build]
