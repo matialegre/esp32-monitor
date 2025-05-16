@@ -2,7 +2,7 @@
 name = "esp32-monitor"
 
 [env]
-PORT = "3000"
+PORT = "80"
 NODE_ENV = "production"
 
 [build]
@@ -15,7 +15,7 @@ command = "node simple-server.js"
 branch = "main"
 
 [web]
-port = 3000
+port = 80
 
 [variables]
 # Configuración de la base de datos
