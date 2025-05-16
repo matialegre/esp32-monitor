@@ -17,6 +17,7 @@
     "jsonwebtoken": "^9.0.2",
     "mqtt": "^4.3.7",
     "sequelize": "^6.37.1",
+    "socket.io": "^4.7.4",
     "sqlite3": "^5.1.7",
     "ws": "^8.18.2"
   },
