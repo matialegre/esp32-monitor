@@ -1,24 +1,15 @@
-[project]
-name = "esp32-monitor"
-
-[env]
-PORT = "80"
-NODE_ENV = "production"
-
 [build]
-command = "npm install --production"
-
-[run]
-command = "node server.js"
+builder = "nixpacks"
+buildCommand = "npm install --production"
 
 [deploy]
-branch = "main"
+startCommand = "node server.js"
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 10
 
-[web]
-port = 80
-
-[variables]
-# Configuración de la base de datos
+[environment]
+NODE_ENV = "production"
+PORT = "3000"
 DATABASE_URL = ""
 
 # Configuración de notificaciones
