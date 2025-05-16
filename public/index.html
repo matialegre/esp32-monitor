@@ -3,49 +3,115 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#2196F3">
-  <meta name="description" content="Monitoreo en tiempo real de temperatura, humedad y presión con ESP32 y BME280">
+  <meta name="theme-color" content="#1a237e">
+  <meta name="description" content="Monitoreo profesional en tiempo real de parámetros ambientales con ESP32 y BME280">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="ESP32 Monitor">
   <link rel="manifest" href="/manifest.json">
   <link rel="icon" type="image/png" href="/icon-192.png">
   <link rel="apple-touch-icon" href="/icon-192.png">
-  <title>ESP32 + BME280 Monitor</title>
+  <title>ESP32 Enviro Monitor</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <div class="container">
-    <header>
-      <h1>ESP32 + BME280 Monitor</h1>
-      <p>Monitoreo en tiempo real de temperatura, humedad y presión</p>
-    </header>
-
-    <div class="notification-section">
-      <button id="subscribeBtn" class="notification-btn">Activar Notificaciones</button>
-      <div id="status" class="status-message"></div>
-    </div>
-
-    <div class="card">
-      <div class="sensor-panel">
-        <div class="sensor-card" id="temperatureCard">
-          <h3>Temperatura</h3>
-          <div class="sensor-value">--</div>
-          <div class="unit">°C</div>
+  <div class="app-container">
+    <header class="app-header">
+      <div class="header-content">
+        <div class="logo">
+          <i class="fas fa-chart-line"></i>
+          <h1>ESP32 Enviro Monitor</h1>
         </div>
-        <div class="sensor-card" id="humidityCard">
-          <h3>Humedad</h3>
-          <div class="sensor-value">--</div>
-          <div class="unit">%</div>
-        </div>
-        <div class="sensor-card" id="pressureCard">
-          <h3>Presión</h3>
-          <div class="sensor-value">--</div>
-          <div class="unit">hPa</div>
+        <div class="connection-status" id="connectionStatus">
+          <span class="status-dot"></span>
+          <span class="status-text">Conectando...</span>
         </div>
       </div>
-    </div>
+    </header>
+
+    <main class="main-content">
+      <div class="sensor-grid">
+        <!-- Tarjeta de Temperatura -->
+        <div class="sensor-card" id="temperatureCard">
+          <div class="card-header">
+            <i class="fas fa-thermometer-half"></i>
+            <h2>Temperatura</h2>
+          </div>
+          <div class="card-body">
+            <div class="sensor-value" id="temperature">25.5</div>
+            <div class="sensor-unit">°C</div>
+          </div>
+          <div class="card-footer">
+            <span class="last-update">Última actualización: <span id="temp-time">14:30:00</span></span>
+          </div>
+        </div>
+
+        <!-- Tarjeta de Humedad -->
+        <div class="sensor-card" id="humidityCard">
+          <div class="card-header">
+            <i class="fas fa-tint"></i>
+            <h2>Humedad</h2>
+          </div>
+          <div class="card-body">
+            <div class="sensor-value" id="humidity">60.2</div>
+            <div class="sensor-unit">%</div>
+          </div>
+          <div class="card-footer">
+            <span class="last-update">Última actualización: <span id="humidity-time">14:30:00</span></span>
+          </div>
+        </div>
+
+        <!-- Tarjeta de Presión -->
+        <div class="sensor-card" id="pressureCard">
+          <div class="card-header">
+            <i class="fas fa-tachometer-alt"></i>
+            <h2>Presión</h2>
+          </div>
+          <div class="card-body">
+            <div class="sensor-value" id="pressure">1013.2</div>
+            <div class="sensor-unit">hPa</div>
+          </div>
+          <div class="card-footer">
+            <span class="last-update">Última actualización: <span id="pressure-time">14:30:00</span></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Gráfico de tendencias -->
+      <div class="chart-container">
+        <div class="chart-header">
+          <h3><i class="fas fa-chart-line"></i> Tendencias</h3>
+          <div class="chart-controls">
+            <button class="btn btn-sm" id="tempChartBtn">Temp</button>
+            <button class="btn btn-sm" id="humidityChartBtn">Humedad</button>
+            <button class="btn btn-sm" id="pressureChartBtn">Presión</button>
+          </div>
+        </div>
+        <canvas id="sensorChart"></canvas>
+      </div>
+    </main>
+
+    <footer class="app-footer">
+      <div class="footer-content">
+        <div class="notification-section">
+          <button id="subscribeBtn" class="btn btn-primary">
+            <i class="fas fa-bell"></i> Activar Notificaciones
+          </button>
+          <div id="status" class="status-message"></div>
+        </div>
+        <div class="footer-info">
+          <span>ESP32 BME280 Monitor v1.0.0</span>
+          <span id="lastUpdate">Última actualización: 14:30:00</span>
+        </div>
+      </div>
+    </footer>
   </div>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
