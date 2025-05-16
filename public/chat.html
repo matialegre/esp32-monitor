@@ -174,7 +174,7 @@
         socket.close();
       }
 
-      socket = new WebSocket('ws://192.168.0.3:3000');
+      socket = new WebSocket('ws://esp32-monitor.railway.internal:3000');
 
       socket.onopen = () => {
         setStatus('Conectado al chat', 'success');

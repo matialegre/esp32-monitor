@@ -2,7 +2,7 @@
 const publicVapidKey = '<TU_PUBLIC_VAPID_KEY>';
 
 // WebSocket configuration
-const wsUrl = 'ws://192.168.0.3:3000'; // Servidor local con WebSocket
+const wsUrl = 'ws://esp32-monitor.railway.internal:3000'; // Servidor Railway interno
 let socket = null;
 
 // Constants for sensor cards
