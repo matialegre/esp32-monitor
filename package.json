@@ -4,12 +4,12 @@
   "description": "Monitor ESP32 + BME280 con MQTT",
   "main": "mqtt-server.js",
   "scripts": {
-    "start": "node mqtt-server.js"
+    "start": "node server.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^4.21.2",
     "mqtt": "^4.3.7",
-    "ws": "^8.14.2"
+    "ws": "^8.18.2"
   }
 }
