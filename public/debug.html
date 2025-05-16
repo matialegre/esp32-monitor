@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Debug WebSocket</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 20px auto;
+      padding: 20px;
+    }
+    .container {
+      background-color: #f5f5f5;
+      padding: 20px;
+      border-radius: 10px;
+    }
+    button {
+      margin: 10px 0;
+      padding: 10px 20px;
+      background-color: #2196F3;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #1976D2;
+    }
+    #logs {
+      height: 300px;
+      overflow-y: auto;
+      margin: 20px 0;
+      padding: 10px;
+      background-color: white;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+    .log {
+      margin: 5px 0;
+      padding: 5px;
+      border-radius: 3px;
+    }
+    .success {
+      background-color: #e8f5e9;
+      color: #2e7d32;
+    }
+    .error {
+      background-color: #ffebee;
+      color: #c62828;
+    }
+    .info {
+      background-color: #e3f2fd;
+      color: #1565c0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Debug WebSocket</h1>
+    <div>
+      <label for="wsUrl">URL WebSocket:</label>
+      <input type="text" id="wsUrl" value="ws://localhost:8080" style="width: 300px;">
+      <button onclick="connect()">Conectar</button>
+    </div>
+    <div>
+      <label for="message">Mensaje:</label>
+      <input type="text" id="message" value='{"topic": "bme280/data", "action": "subscribe"}' style="width: 300px;">
+      <button onclick="send()">Enviar</button>
+    </div>
+    <div id="logs"></div>
+  </div>
+
+  <script>
+    let socket = null;
+    const logs = document.getElementById('logs');
+
+    function addLog(message, type = 'info') {
+      const div = document.createElement('div');
+      div.className = `log ${type}`;
+      div.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      logs.appendChild(div);
+      logs.scrollTop = logs.scrollHeight;
+    }
+
+    function connect() {
+      if (socket) {
+        socket.close();
+      }
+      
+      const url = document.getElementById('wsUrl').value;
+      addLog(`Conectando a: ${url}`);
+      
+      try {
+        socket = new WebSocket(url);
+        
+        socket.onopen = () => {
+          addLog('Conexión establecida', 'success');
+        };
+        
+        socket.onmessage = (event) => {
+          addLog(`Mensaje recibido: ${event.data}`);
+        };
+        
+        socket.onclose = (event) => {
+          addLog(`Desconectado - Código: ${event.code}, Razón: ${event.reason}`, 'error');
+        };
+        
+        socket.onerror = (error) => {
+          addLog(`Error: ${error.message}`, 'error');
+        };
+      } catch (error) {
+        addLog(`Error al conectar: ${error.message}`, 'error');
+      }
+    }
+
+    function send() {
+      if (!socket || socket.readyState !== WebSocket.OPEN) {
+        addLog('No conectado al servidor', 'error');
+        return;
+      }
+      
+      try {
+        const message = document.getElementById('message').value;
+        addLog(`Enviando: ${message}`);
+        socket.send(message);
+      } catch (error) {
+        addLog(`Error al enviar: ${error.message}`, 'error');
+      }
+    }
+  </script>
+</body>
+</html>

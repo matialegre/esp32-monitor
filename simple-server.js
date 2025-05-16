@@ -1,0 +1,111 @@
+const WebSocket = require('ws');
+const wss = new WebSocket.Server({
+  port: 8080,
+  host: '0.0.0.0'  // Escuchar en todas las interfaces de red
+});
+
+// Mantener un registro de clientes por sala
+const clientsByRoom = new Map();
+
+wss.on('connection', function connection(ws) {
+  console.log('Cliente conectado');
+  
+  ws.on('message', function incoming(message) {
+    console.log('Mensaje recibido:', message);
+    try {
+      const data = JSON.parse(message);
+      console.log('Procesando mensaje:', data);
+      
+      switch (data.action) {
+        case 'join_room':
+          handleJoinRoom(ws, data.room);
+          break;
+        case 'send_message':
+          handleSendMessage(ws, data.room, data.message, data.sender);
+          break;
+        case 'subscribe':
+          handleSubscribe(ws, data.topic);
+          break;
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      ws.send(JSON.stringify({ error: error.message }));
+    }
+  });
+
+  ws.on('close', () => {
+    console.log('Cliente desconectado');
+    // Eliminar cliente de todas las salas
+    for (const [room, clients] of clientsByRoom.entries()) {
+      const index = clients.indexOf(ws);
+      if (index > -1) {
+        clients.splice(index, 1);
+      }
+    }
+  });
+});
+
+function handleJoinRoom(ws, room) {
+  if (!clientsByRoom.has(room)) {
+    clientsByRoom.set(room, []);
+  }
+  clientsByRoom.get(room).push(ws);
+  console.log(`Cliente unido a la sala: ${room}`);
+}
+
+function handleSendMessage(ws, room, message, sender) {
+  console.log(`Mensaje enviado en sala ${room}: ${message}`);
+  
+  if (clientsByRoom.has(room)) {
+    const clients = clientsByRoom.get(room);
+    clients.forEach(client => {
+      if (client !== ws && client.readyState === WebSocket.OPEN) {
+        client.send(JSON.stringify({
+          type: 'message',
+          message: message,
+          sender: sender
+        }));
+      }
+    });
+  }
+}
+
+function handleSubscribe(ws, topic) {
+  console.log('Cliente suscrito al topic:', topic);
+  
+  // Simular datos de sensor
+  const sensorData = {
+    temperature: Math.random() * 30 + 20,  // Temperatura aleatoria entre 20 y 50
+    humidity: Math.random() * 60 + 40,     // Humedad aleatoria entre 40 y 100
+    pressure: Math.random() * 20 + 1000    // Presión aleatoria entre 1000 y 1020
+  };
+  
+  // Enviar datos simulados
+  ws.send(JSON.stringify({
+    type: 'sensor_data',
+    data: sensorData
+  }));
+}
+
+// Simular datos de sensor cada 5 segundos
+setInterval(() => {
+  const sensorData = {
+    temperature: Math.random() * 30 + 20,
+    humidity: Math.random() * 60 + 40,
+    pressure: Math.random() * 20 + 1000
+  };
+  
+  // Enviar a todos los clientes suscritos
+  wss.clients.forEach(client => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(JSON.stringify({
+        type: 'sensor_data',
+        data: sensorData
+      }));
+    }
+  });
+}, 5000);
+
+console.log('Servidor WebSocket escuchando en ws://localhost:8080');
+console.log('Abrir en el navegador: http://localhost:8000/chat.html');
+console.log('Compartir en WhatsApp: https://wa.me/?text=http://localhost:8000/chat.html');

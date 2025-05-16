@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Prueba MQTT</title>
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 20px auto;
+      padding: 20px;
+    }
+    .container {
+      background-color: #f5f5f5;
+      padding: 20px;
+      border-radius: 10px;
+    }
+    button {
+      margin: 10px 0;
+      padding: 10px 20px;
+      background-color: #2196F3;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #1976D2;
+    }
+    #status {
+      margin: 10px 0;
+      padding: 10px;
+      border-radius: 5px;
+    }
+    .success {
+      background-color: #4CAF50;
+      color: white;
+    }
+    .error {
+      background-color: #F44336;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Prueba de Conexión MQTT</h1>
+    <button onclick="connect()">Conectar</button>
+    <button onclick="publish()">Publicar Datos</button>
+    <div id="status"></div>
+    <div id="messages"></div>
+  </div>
+
+  <script>
+    let client = null;
+    const topic = 'bme280/data';
+    const broker = 'ws://test.mosquitto.org:8080/mqtt';
+
+    function connect() {
+      // Crear nuevo cliente MQTT
+      client = mqtt.connect(broker, {
+        clientId: 'mqttjs_' + Math.random().toString(16).substr(2, 8),
+        clean: true,
+        connectTimeout: 40000,
+        reconnectPeriod: 1000
+      });
+
+      // Eventos del cliente
+      client.on('connect', () => {
+        updateStatus('Conectado al broker MQTT', 'success');
+        client.subscribe(topic, (err) => {
+          if (err) {
+            updateStatus('Error al suscribirse: ' + err.message, 'error');
+          } else {
+            updateStatus('Suscripto al topic ' + topic, 'success');
+          }
+        });
+      });
+
+      client.on('error', (error) => {
+        updateStatus('Error: ' + error.message, 'error');
+      });
+
+      client.on('close', () => {
+        updateStatus('Conexión cerrada', 'error');
+      });
+
+      client.on('offline', () => {
+        updateStatus('Desconectado', 'error');
+      });
+
+      client.on('message', (topic, message) => {
+        const data = JSON.parse(message.toString());
+        addMessage(`Recibido en ${topic}: ${JSON.stringify(data, null, 2)}`);
+      });
+    }
+
+    function publish() {
+      if (!client || !client.connected) {
+        updateStatus('No conectado al broker. Conectando...', 'error');
+        connect();
+        return;
+      }
+
+      const data = {
+        temperature: Math.random() * 30 + 20,  // Temperatura aleatoria entre 20 y 50
+        humidity: Math.random() * 60 + 40,     // Humedad aleatoria entre 40 y 100
+        pressure: Math.random() * 20 + 1000    // Presión aleatoria entre 1000 y 1020
+      };
+
+      client.publish(topic, JSON.stringify(data), { qos: 1, retain: false }, (err) => {
+        if (err) {
+          updateStatus('Error al publicar: ' + err.message, 'error');
+        } else {
+          updateStatus('Datos publicados', 'success');
+          addMessage('Publicado: ' + JSON.stringify(data, null, 2));
+        }
+      });
+    }
+
+    function updateStatus(message, type = 'success') {
+      const status = document.getElementById('status');
+      status.textContent = message;
+      status.className = type;
+    }
+
+    function addMessage(message) {
+      const messages = document.getElementById('messages');
+      const div = document.createElement('div');
+      div.textContent = message;
+      div.className = 'message';
+      messages.appendChild(div);
+      // Mantener los últimos 10 mensajes
+      if (messages.children.length > 10) {
+        messages.removeChild(messages.firstChild);
+      }
+    }
+
+    // Intentar conectar automáticamente al cargar la página
+    window.onload = connect;
+  </script>
+</body>
+</html>

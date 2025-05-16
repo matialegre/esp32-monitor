@@ -1,0 +1,23 @@
+[project]
+name = "esp32-monitor"
+
+[env]
+PORT = "8080"
+NODE_ENV = "production"
+
+[build]
+command = "npm install --production"
+
+[run]
+command = "node simple-server.js"
+
+[deploy]
+branch = "main"
+
+[variables]
+# Configuración de la base de datos
+DATABASE_URL = ""
+
+# Configuración de notificaciones
+VAPID_PUBLIC_KEY = ""
+VAPID_PRIVATE_KEY = ""
