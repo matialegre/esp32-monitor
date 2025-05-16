@@ -79,7 +79,21 @@ wss.on('connection', (ws, req) => {
 
 // Iniciar el servidor
 const PORT = process.env.PORT || 8080;
-server.listen(PORT, () => {
-  console.log(`Servidor HTTP y WebSocket iniciado en el puerto ${PORT}`);
-  console.log(`WebSocket disponible en ws://localhost:${PORT}/ws`);
+const HOST = '0.0.0.0'; // Escuchar en todas las interfaces de red
+
+server.listen(PORT, HOST, () => {
+  console.log(`Servidor HTTP y WebSocket iniciado en http://${HOST}:${PORT}`);
+  console.log(`WebSocket disponible en ws://${HOST}:${PORT}/ws`);
+});
+
+// Manejar errores del servidor
+server.on('error', (error) => {
+  console.error('Error del servidor:', error);
+  process.exit(1);
+});
+
+// Manejar cierre inesperado
+process.on('uncaughtException', (error) => {
+  console.error('Error no manejado:', error);
+  process.exit(1);
 });

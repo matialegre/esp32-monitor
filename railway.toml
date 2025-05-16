@@ -1,15 +1,16 @@
 [build]
-builder = "nixpacks"
-buildCommand = "npm install --production"
+  builder = "nixpacks"
+  buildCommand = "npm install --production"
 
 [deploy]
-startCommand = "node server.js"
-restartPolicyType = "on_failure"
-restartPolicyMaxRetries = 10
+  startCommand = "node server.js"
+  restartPolicyType = "on_failure"
+  restartPolicyMaxRetries = 10
 
 [environment]
-NODE_ENV = "production"
-PORT = "8080"
+  NODE_ENV = "production"
+  PORT = "8080"
+  HOST = "0.0.0.0"
 DATABASE_URL = ""
 
 # Configuración de notificaciones
