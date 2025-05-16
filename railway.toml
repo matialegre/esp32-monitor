@@ -9,7 +9,7 @@ NODE_ENV = "production"
 command = "npm install --production"
 
 [run]
-command = "node simple-server.js"
+command = "node server.js"
 
 [deploy]
 branch = "main"
