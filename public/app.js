@@ -2,7 +2,7 @@
 const publicVapidKey = '<TU_PUBLIC_VAPID_KEY>';
 
 // WebSocket configuration
-const wsUrl = 'ws://esp32-monitor-production.up.railway.app:3000/ws'; // Servidor Railway público
+const wsUrl = 'wss://esp32-monitor-production.up.railway.app/ws'; // Servidor Railway público
 let socket = null;
 
 // Constants for sensor cards
@@ -11,21 +11,58 @@ const humidityCard = document.getElementById('humidityCard');
 const pressureCard = document.getElementById('pressureCard');
 const statusDiv = document.getElementById('status');
 
-if ('serviceWorker' in navigator) {
-  init();
-}
+// Register Service Worker and initialize app
+window.addEventListener('load', async () => {
+  if ('serviceWorker' in navigator) {
+    try {
+      const registration = await navigator.serviceWorker.register('/service-worker.js');
+      console.log('ServiceWorker registration successful with scope: ', registration.scope);
+      
+      // Wait for service worker to be ready
+      if (registration.active) {
+        initApp(registration);
+      } else {
+        registration.addEventListener('updatefound', () => {
+          const newWorker = registration.installing;
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'activated') {
+              initApp(registration);
+            }
+          });
+        });
+      }
+    } catch (error) {
+      console.error('ServiceWorker registration failed: ', error);
+      setStatus('Error al registrar el Service Worker', 'error');
+    }
+  } else {
+    console.log('Service workers are not supported.');
+    setStatus('Tu navegador no soporta Service Workers', 'error');
+  }
+});
 
-async function init() {
+async function initApp(registration) {
   try {
-    const reg = await navigator.serviceWorker.register('service-worker.js');
-    console.log('Service Worker registrado');
-    document.getElementById('subscribeBtn').addEventListener('click', () => subscribe(reg));
+    // Check if push notifications are supported
+    if (!('PushManager' in window)) {
+      throw new Error('Push notifications are not supported');
+    }
+    
+    // Check notification permission
+    const permission = await Notification.requestPermission();
+    if (permission === 'granted') {
+      console.log('Notification permission granted.');
+      document.getElementById('subscribeBtn').addEventListener('click', () => subscribe(registration));
+    } else {
+      console.log('Unable to get permission to notify.');
+      setStatus('Notificaciones desactivadas', 'warning');
+    }
     
     // Initialize WebSocket connection
     connectWebSocket();
-  } catch (err) {
-    console.error('Error SW:', err);
-    setStatus('Error al registrar el Service Worker', 'error');
+  } catch (error) {
+    console.error('App initialization failed:', error);
+    setStatus('Error al inicializar la aplicación', 'error');
   }
 }
 
