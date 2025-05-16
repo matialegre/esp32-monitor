@@ -1,8 +1,7 @@
 const WebSocket = require('ws');
 const wss = new WebSocket.Server({
-  port: 3000,
-  host: '0.0.0.0',
-  path: '/ws'
+  port: process.env.PORT || 3000,
+  host: '0.0.0.0'
 });
 
 // Habilitar CORS para permitir conexiones desde cualquier origen
@@ -10,6 +9,32 @@ wss.on('headers', (headers, req) => {
   headers.push('Access-Control-Allow-Origin: *');
   headers.push('Access-Control-Allow-Methods: GET, POST, OPTIONS');
   headers.push('Access-Control-Allow-Headers: Content-Type');
+});
+
+// Manejar la ruta / para mostrar el archivo index.html
+const http = require('http');
+const path = require('path');
+const fs = require('fs');
+
+const httpServer = http.createServer((req, res) => {
+  if (req.url === '/') {
+    fs.readFile(path.join(__dirname, 'public', 'index.html'), (err, data) => {
+      if (err) {
+        res.writeHead(500);
+        res.end('Error loading index.html');
+        return;
+      }
+      res.writeHead(200, { 'Content-Type': 'text/html' });
+      res.end(data);
+    });
+  } else {
+    res.writeHead(404);
+    res.end('Not Found');
+  }
+});
+
+httpServer.listen(process.env.PORT || 3000, () => {
+  console.log('HTTP server listening on port ' + (process.env.PORT || 3000));
 });
 
 // Habilitar CORS para permitir conexiones desde cualquier origen
