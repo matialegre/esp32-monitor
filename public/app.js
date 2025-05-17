@@ -2,16 +2,36 @@
 const CONFIG = {
   // Clave pública VAPID de ejemplo (reemplazar con la tuya en producción)
   publicVapidKey: 'BIz3mXNvzXjLdTQbQ7n8fX5qA1Xz2JhY4KpLmN9bVcXz3RtY6vBn8s7dFgT5yHjU8iK9oLp0oP',
+  
   // URL base de la API
   apiUrl: window.location.origin,
-  // URL del WebSocket para sensores
-  wsSensorUrl: `ws://${window.location.host}/ws/sensors`,
-  // URL del WebSocket para chat
-  wsChatUrl: `ws://${window.location.host}/ws/chat`,
+  
+  // Configuración de WebSockets
+  ws: {
+    // Usar wss en producción, ws en desarrollo
+    protocol: window.location.protocol === 'https:' ? 'wss:' : 'ws:',
+    // Obtener el host actual
+    host: window.location.host,
+    // Rutas
+    paths: {
+      sensors: '/ws/sensors',
+      chat: '/ws/chat'
+    },
+    // Generar URL completa
+    getSensorUrl: function() {
+      return `${this.protocol}//${this.host}${this.paths.sensors}`;
+    },
+    getChatUrl: function() {
+      return `${this.protocol}//${this.host}${this.paths.chat}`;
+    }
+  },
+  
   // Tema MQTT
   mqttTopic: 'bme280/data',
+  
   // Intervalo de actualización de datos en milisegundos
   updateInterval: 5000,
+  
   // Tiempo de expiración del token (24 horas)
   tokenExpiration: 24 * 60 * 60 * 1000
 };
@@ -204,7 +224,7 @@ function connectSensorWebSocket() {
     socket.close();
   }
   
-  socket = new WebSocket(CONFIG.wsSensorUrl);
+  socket = new WebSocket(CONFIG.ws.getSensorUrl());
   
   socket.onopen = () => {
     console.log('Conexión WebSocket de sensores establecida');
@@ -238,43 +258,50 @@ function connectSensorWebSocket() {
 }
 
 // Conectar WebSocket para chat
-function connectChatWebSocket() {
-  if (!window.io) {
-    console.error('Socket.IO no está cargado');
-    return;
-  }
-  
-  if (chatSocket) {
-    chatSocket.disconnect();
-  }
-  
-  // Configurar Socket.IO con el token de autenticación
-  chatSocket = window.io({
-    path: '/ws/chat',
-    auth: {
-      token: authToken
+async function connectChatWebSocket() {
+  try {
+    const wsUrl = CONFIG.ws.getChatUrl();
+    console.log('Conectando a WebSocket de chat en:', wsUrl);
+    
+    // Cerrar conexión existente si existe
+    if (chatSocket) {
+      chatSocket.close();
     }
-  });
-  
-  // Manejar eventos de conexión
-  chatSocket.on('connect', () => {
-    console.log('Conectado al chat');
-    loadChatMessages();
-  });
-  
-  // Manejar mensajes entrantes
-  chatSocket.on('chat_message', (message) => {
-    addMessageToChat(message);
-  });
-  
-  // Manejar errores de autenticación
-  chatSocket.on('connect_error', (error) => {
-    console.error('Error de conexión al chat:', error);
-    if (error.message === 'Authentication error') {
-      showToast('Error de autenticación. Por favor, inicia sesión nuevamente.', 'error');
-      logout();
-    }
-  });
+    
+    // Crear nueva conexión WebSocket
+    chatSocket = new WebSocket(wsUrl);
+    
+    // Configurar manejadores de eventos
+    chatSocket.onopen = () => {
+      console.log('Conexión WebSocket de chat establecida');
+      loadChatMessages();
+    };
+    
+    chatSocket.onmessage = (event) => {
+      try {
+        const message = JSON.parse(event.data);
+        console.log('Mensaje de chat recibido:', message);
+        addMessageToChat(message);
+      } catch (error) {
+        console.error('Error al procesar mensaje de chat:', error);
+      }
+    };
+    
+    chatSocket.onerror = (error) => {
+      console.error('Error en WebSocket de chat:', error);
+      showToast('Error de conexión con el chat', 'error');
+    };
+    
+    chatSocket.onclose = () => {
+      console.log('Conexión WebSocket de chat cerrada');
+      // Intentar reconectar después de 5 segundos
+      setTimeout(() => connectChatWebSocket(), 5000);
+    };
+    
+  } catch (error) {
+    console.error('Error al conectar WebSocket de chat:', error);
+    showToast('Error al conectar con el chat', 'error');
+  }
 }
 
 // Cargar mensajes del chat
@@ -494,10 +521,11 @@ function urlBase64ToUint8Array(base64String) {
 
 // Conectar al WebSocket
 function connectWebSocket() {
-  console.log('Conectando a WebSocket:', CONFIG.wsUrl);
+  const wsUrl = CONFIG.ws.getSensorUrl();
+  console.log('Conectando a WebSocket:', wsUrl);
   updateConnectionStatus('Conectando...', 'connecting');
   
-  socket = new WebSocket(CONFIG.wsUrl);
+  socket = new WebSocket(wsUrl);
   
   socket.onopen = () => {
     console.log('Conexión WebSocket establecida');
@@ -537,11 +565,6 @@ function connectWebSocket() {
     
     // Reconectar después de 5 segundos
     setTimeout(connectWebSocket, 5000);
-  };
-  
-  socket.onerror = (error) => {
-    console.error('Error en la conexión WebSocket:', error);
-    updateConnectionStatus('Error de conexión', 'error');
   };
 }
 
